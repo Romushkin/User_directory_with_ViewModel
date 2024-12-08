@@ -13,10 +13,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.ViewModelProvider
 
 class MainActivity : AppCompatActivity() {
 
-    private val notes: MutableList<User> = mutableListOf()
+    private lateinit var userViewModel: UserViewModel
 
     private lateinit var toolbarMain: Toolbar
     private lateinit var nameET: EditText
@@ -33,6 +34,9 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        userViewModel = ViewModelProvider(this)[UserViewModel::class.java]
+
         toolbarMain = findViewById(R.id.toolbarMain)
         setSupportActionBar(toolbarMain)
         title = "Каталог пользователей"
@@ -42,12 +46,19 @@ class MainActivity : AppCompatActivity() {
         saveBTN = findViewById(R.id.saveBTN)
 
         usersLV = findViewById(R.id.usersLV)
-        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, notes)
+        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf<User>())
         usersLV.adapter = adapter
+
+        userViewModel.userList.observe(this) { updatedList ->
+            adapter.clear()
+            adapter.addAll(updatedList)
+            adapter.notifyDataSetChanged()
+        }
 
         saveBTN.setOnClickListener {
             if (nameET.text.isEmpty() || ageET.text.isEmpty()) return@setOnClickListener
-            notes.add(User(nameET.text.toString(), ageET.text.toString().toInt()))
+            val newUser = User(nameET.text.toString(), ageET.text.toString().toInt())
+            userViewModel.addUser(newUser)
             adapter.notifyDataSetChanged()
             nameET.text.clear()
             ageET.text.clear()
@@ -55,8 +66,7 @@ class MainActivity : AppCompatActivity() {
 
         usersLV.onItemClickListener =
             AdapterView.OnItemClickListener { parent, view, position, id ->
-                val note = adapter.getItem(position)
-                adapter.remove(note)
+                userViewModel.removeUser(position)
             }
     }
 
